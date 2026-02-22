@@ -591,7 +591,7 @@ def run_backtest(prices1, prices2, timeframe='4h', entry_z=2.0, exit_z=0.3,
 
 st.set_page_config(page_title="Pairs Backtester", page_icon="📊", layout="wide")
 st.title("📊 Pairs Trading Backtester")
-st.caption("v11.0 | 21.02.2026 | Cost-aware threshold + Johansen + Moscow time")
+st.caption("v12.0 | 22.02.2026 | Pre-entry guard (phantom STOP_LOSS fix) + Johansen + Moscow time")
 
 with st.sidebar:
     st.header("⚙️ Настройки")
