@@ -239,8 +239,8 @@ def calc_continuous_threshold(confidence, quality_score, hurst, timeframe='4h'):
 # BACKTESTER ENGINE v6.0
 # ═══════════════════════════════════════════════════════
 
-def run_backtest(prices1, prices2, timeframe='4h', entry_z=2.0, exit_z=0.3,
-                 stop_z=4.0, max_bars=100, min_bars=3, commission_pct=0.1,
+def run_backtest(prices1, prices2, timeframe='4h', entry_z=2.0, exit_z=0.8,
+                 stop_z=4.0, max_bars=50, min_bars=2, commission_pct=0.1,
                  slippage_pct=0.05,
                  adaptive_entry=True, trailing_stop=True,
                  walk_forward=False, wf_train_pct=0.70):
@@ -385,7 +385,7 @@ def run_backtest(prices1, prices2, timeframe='4h', entry_z=2.0, exit_z=0.3,
     if adaptive_entry:
         entry_z = calc_continuous_threshold(confidence, q_score, hurst, timeframe)
     
-    adaptive_stop = max(entry_z + 2.0, stop_z)
+    adaptive_stop = max(entry_z + 1.5, stop_z)
     
     # Adaptive min_hold
     if hl_bars and hl_bars < 50:
@@ -465,7 +465,7 @@ def run_backtest(prices1, prices2, timeframe='4h', entry_z=2.0, exit_z=0.3,
             # v6.0: Trailing stop
             if trailing_stop and pnl > position['best_pnl']:
                 position['best_pnl'] = pnl
-            if trailing_stop and position['best_pnl'] >= 1.0:
+            if trailing_stop and position['best_pnl'] >= 0.8:
                 position['trailing_active'] = True
             
             exit_type = None
@@ -477,14 +477,14 @@ def run_backtest(prices1, prices2, timeframe='4h', entry_z=2.0, exit_z=0.3,
                 elif position['direction'] == 'SHORT' and z <= exit_z:
                     exit_type = 'MEAN_REVERT'
                 
-                # Overshoot
-                if position['direction'] == 'LONG' and z > 1.0:
+                # Overshoot — take profit when Z crosses past zero
+                if position['direction'] == 'LONG' and z > 0.5:
                     exit_type = 'OVERSHOOT'
-                elif position['direction'] == 'SHORT' and z < -1.0:
+                elif position['direction'] == 'SHORT' and z < -0.5:
                     exit_type = 'OVERSHOOT'
             
-            # Trailing stop — if PnL was ≥1% but now drops to 0%
-            if trailing_stop and position['trailing_active'] and pnl <= 0 and bars_held >= min_hold:
+            # Trailing stop — if PnL was ≥0.8% but now drops to 40% of peak
+            if trailing_stop and position['trailing_active'] and pnl <= position['best_pnl'] * 0.4 and bars_held >= min_hold:
                 exit_type = 'TRAILING_STOP'
             
             # Hard stop loss
@@ -591,7 +591,7 @@ def run_backtest(prices1, prices2, timeframe='4h', entry_z=2.0, exit_z=0.3,
 
 st.set_page_config(page_title="Pairs Backtester", page_icon="📊", layout="wide")
 st.title("📊 Pairs Trading Backtester")
-st.caption("v12.0 | 22.02.2026 | Pre-entry guard (phantom STOP_LOSS fix) + Johansen + Moscow time")
+st.caption("v13.0 | 22.02.2026 | Realistic exits (exit_z=0.8, stop+1.5, trailing 40%)")
 
 with st.sidebar:
     st.header("⚙️ Настройки")
@@ -616,9 +616,9 @@ with st.sidebar:
     else:
         entry_z = 2.0
     
-    exit_z = st.slider("Z выхода", 0.0, 1.5, 0.30, step=0.1)
+    exit_z = st.slider("Z выхода", 0.0, 1.5, 0.80, step=0.1)
     stop_z = st.slider("Z стопа (base)", 3.0, 6.0, 4.0, step=0.5)
-    max_bars = st.slider("Макс. баров", 20, 200, 100)
+    max_bars = st.slider("Макс. баров", 20, 200, 50)
     commission = st.slider("Комиссия (%)", 0.0, 0.3, 0.10, step=0.01,
                            help="Обычно 0.08-0.10% для мейкеров")
     slippage = st.slider("Проскальзывание (%)", 0.0, 0.2, 0.05, step=0.01,
